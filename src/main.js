@@ -1,16 +1,12 @@
-import * as THREE from 'three';
-import TWEEN from 'tween.js';
-import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
-import Stats from 'stats.js'
+import * as THREE from "three";
+import TWEEN from "https://unpkg.com/@tweenjs/tween.js@20.0.0/dist/tween.esm.js";
+import { PointerLockControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js";
 await document.fonts.load('72px "Sid_handwriting"');
 
 // --- Scene & Camera ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x00000a);
 const clock = new THREE.Clock();
-const stats = new Stats()
-stats.showPanel(0) // FPS
-document.body.appendChild(stats.dom)
 
 const camera = new THREE.PerspectiveCamera(90, window.innerWidth/window.innerHeight, 0.1, 1000);
 camera.position.set(0, 1.6, 60);
@@ -265,16 +261,22 @@ function createPolaroidBackTexture(photoData, aspect) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Text style
-  ctx.fillStyle = `rgb(${15 + Math.random()*15}, ${15 + Math.random()*15}, ${20 + Math.random()*20})`;
-  ctx.globalAlpha = 0.9 + Math.random() * 0.1;
+  const r = 15 + Math.random()*15;
+  const g = 15 + Math.random()*15;
+  const b = 20 + Math.random()*20;
+
+  const scale = canvas.height / 512;
+  const textColor = `rgba(${r}, ${g}, ${b})`;
+
+  ctx.globalAlpha = 0.95 + Math.random() * 0.05;
+  ctx.fillStyle = textColor;
+  ctx.strokeStyle = textColor;
+  
+  ctx.lineWidth = 4 * scale;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  const scale = canvas.height / 512;
   ctx.font = `${72 * scale}px "Sid_handwriting"`;
 
-  // Stroke
-  ctx.lineWidth = 3 * scale;
-  ctx.strokeStyle = "#000000"; // outline color
 
   // Date formatting
   const dateObj = new Date(photoData.date);
@@ -309,12 +311,12 @@ function createPolaroidBackTexture(photoData, aspect) {
   photoData.state ||
   "Unknown";
 
-// Only truncate for vertical photos
-if (aspect < 1 && locationName.length > 10) {
-  locationName = locationName.slice(0, 9) + "...";
-}
+  // Only truncate for vertical photos
+  if (aspect < 1 && locationName.length > 9) {
+    locationName = locationName.slice(0, 9) + "...";
+  }
 
-const locationStr = `${locationName} ${flag}`;
+  const locationStr = `${locationName} ${flag}`;
 
   const lines = [
     locationStr,
@@ -471,7 +473,7 @@ function updateBranchGeometry(){
 
   });
 
-  branchGeometry.setDrawRange(0, Math.max(branchIndex * 2, 2)); // never zero
+  branchGeometry.setDrawRange(0, Math.max(branchIndex * 2, 2));
   branchGeometry.attributes.position.needsUpdate = true;
 }
 

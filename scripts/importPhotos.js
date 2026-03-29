@@ -84,7 +84,7 @@ async function run() {
 
   // Only load valid image files
   const files = fs.readdirSync(photoFolder).filter(file =>
-    /\.(jpg|jpeg|png)$/i.test(file)
+    /\.(jpg|jpeg|png|JPG|JPEG|PNG)$/i.test(file)
   );
 
   console.log(`Found ${files.length} images`);
