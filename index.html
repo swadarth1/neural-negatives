@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Film SCA</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Loading screen overlay -->
+  <div id="loadingScreen" style="
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+">
+  <canvas id="loadingCanvas"></canvas>
+
+  <p id="loadingText" style="
+      position: absolute;
+      top: 80%;
+      width: 100%;
+      text-align: center;
+      color: white;
+      font-family: Futura;
+      font-size: 2rem;
+      margin: 0;
+  ">
+    Loading photos...
+  </p>
+
+  <p id="controlsText" style="
+      position: absolute;
+      top: 90%;
+      width: 100%;
+      text-align: center;
+      color: white;
+      font-family: Futura;
+      font-size: 1.4rem;
+      opacity: 0.85;
+      margin: 0;
+  ">
+    WASD to move, E to interact
+  </p>
+
+</div>
+  <!-- Loading screen JS (runs first) -->
+  <script type="module" src="/src/loadingScreen.js"></script>
+  <div id="discoveryHUD">
+    <div>Photos revealed: <span id="statPhotos">0</span> / <span id="statTotalPhotos">0</span></div>
+    <div>Cities discovered: <span id="statCities">0</span></div>
+    <div>Countries discovered: <span id="statCountries">0</span></div>
+    <div>Total distance documented: <span id="statDistance">0</span>  km</div>
+  </div>
+
+  <!-- Your main JS (runs after loading screen is set up) -->
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
