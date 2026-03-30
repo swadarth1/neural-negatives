@@ -147,7 +147,7 @@ const MAX_TREE_NODES = 7500;
 const influenceDistance = 50;
 const killDistance = 1.5;
 const stepSize = 0.9;
-const rangeScale = 1.05;
+const rangeScale = 1;
 
 // Photo Fading/Development
 const MAX_VISIBLE_PHOTOS = 42;
