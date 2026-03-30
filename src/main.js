@@ -586,14 +586,14 @@ fetch("/data/photos.json")
       attractors.push(attractor);
     });
 
-    // Optional: debug spheres
-    const debugMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    const debugSphereGeo = new THREE.SphereGeometry(0.5, 8, 8);
-    attractors.forEach(attractor => {
-      const sphere = new THREE.Mesh(debugSphereGeo, debugMaterial);
-      sphere.position.copy(attractor);
-      scene.add(sphere);
-    });
+    // // Optional: debug spheres
+    // const debugMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    // const debugSphereGeo = new THREE.SphereGeometry(0.5, 8, 8);
+    // attractors.forEach(attractor => {
+    //   const sphere = new THREE.Mesh(debugSphereGeo, debugMaterial);
+    //   sphere.position.copy(attractor);
+    //   scene.add(sphere);
+    // });
 
     // Reset tree
     treeFinished = false;
