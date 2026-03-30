@@ -83,6 +83,40 @@ function pulseStat(id){
 
 }
 
+const cityCounts = {};
+const countryCounts = {};
+
+function updateLocationLists() {
+
+  const cityList = document.getElementById("cityList");
+  const countryList = document.getElementById("countryList");
+
+  const cityStr = Object.entries(cityCounts)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([city,count]) => `${city}`)
+    // .map(([city,count]) => `${city} (x${count})`)
+    .join(", ");
+
+  const countryStr = Object.entries(countryCounts)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([code,count]) => {
+
+      const flag = flagEmojiFromCode(code);
+
+      const name = new Intl.DisplayNames(['en'], {
+        type: 'region'
+      }).of(code);
+
+      // return `${flag} ${name} (x${count})`;
+      return `${flag} ${name}`;
+
+    })
+    .join(", ");
+
+  cityList.textContent = cityStr;
+  countryList.textContent = countryStr;
+}
+
 // --- Stats Tracker ---
 const discoveryStats = {
   photosRevealed: 0,
@@ -169,16 +203,22 @@ if(closest){
         discoveryStats.cities.add(city)
         if (discoveryStats.cities.size > prevCityCount) {
           pulseStat("statCities");
+          cityCounts[city] = (cityCounts[city] || 0) + 1;
         }
       };
     
       // countries
       if (d.countryCode) {
+        const countryName = countryNameFromCode(d.countryCode);
+
         const prevCountryCount = discoveryStats.countries.size;
-        discoveryStats.countries.add(d.countryCode);
+        discoveryStats.countries.add(countryName);
+
         if (discoveryStats.countries.size > prevCountryCount) {
           pulseStat("statCountries");
         }
+
+        countryCounts[d.countryCode] = (countryCounts[d.countryCode] || 0) + 1;
       }
     
       // distance calculation
@@ -201,6 +241,7 @@ if(closest){
       discoveryStats.lastLat = d.lat;
       discoveryStats.lastLon = d.lon;
     
+      updateLocationLists();
       updateDiscoveryUI();
     }
 
@@ -492,6 +533,17 @@ function flagEmojiFromCode(code) {
     .join("");
 }
 
+function countryNameFromCode(code) {
+  if (!code) return "Unknown";
+
+  try {
+    const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    return regionNames.of(code);
+  } catch {
+    return code;
+  }
+}
+
 function haversine(lat1, lon1, lat2, lon2) {
 
   const R = 6371; // km
@@ -580,12 +632,6 @@ fetch("/data/photos.json")
           (Math.random()-0.5)*40*rangeScale,
           (Math.random()-0.5)*80*rangeScale
         );
-        // if (attractor) {
-        //   group.position.copy(attractor);
-        // } else {
-        //   console.warn("Attractor undefined for photo", i);
-        //   group.position.set(0,0,0); // fallback
-        // }
         group.position.copy(attractor);
 
         // Random tilt

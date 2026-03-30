@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Film SCA</title>
+  <title>Neural Negatives</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -59,13 +59,41 @@
   <!-- Loading screen JS (runs first) -->
   <script type="module" src="/src/loadingScreen.js"></script>
   <div id="discoveryHUD">
-    <div>Photos revealed: <span id="statPhotos">0</span> / <span id="statTotalPhotos">0</span></div>
-    <div>Cities discovered: <span id="statCities">0</span></div>
-    <div>Countries discovered: <span id="statCountries">0</span></div>
-    <div>Total distance documented: <span id="statDistance">0</span>  km</div>
+
+  <div class="statBlock">
+    <div class="statMain">
+      Photos revealed: <span id="statPhotos">0</span>/<span id="statTotalPhotos">0</span>
+    </div>
   </div>
+
+  <div class="statBlock">
+    <div class="statMain">
+      Cities discovered: <span id="statCities">0</span>
+    </div>
+    <div id="cityList" class="subStat"></div>
+  </div>
+
+  <div class="statBlock">
+    <div class="statMain">
+      Countries discovered: <span id="statCountries">0</span>
+    </div>
+    <div id="countryList" class="subStat"></div>
+  </div>
+
+  <div class="statBlock">
+    <div class="statMain">
+      Total distance covered:
+      <span id="statDistance">0</span> km
+    </div>
+  </div>
+
+</div>
 
   <!-- Your main JS (runs after loading screen is set up) -->
   <script type="module" src="/src/main.js"></script>
+  <div id="authorWatermark">
+    @ Sid Krishnan · 2026 <br>
+    <a href="https://sidkrishnan.framer.website/" target="_blank">sidkrishnan.framer.website</a>
+  </div>
 </body>
 </html>
