@@ -8,47 +8,12 @@
 </head>
 <body>
   <!-- Loading screen overlay -->
-  <div id="loadingScreen" style="
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%;
-    height: 100%;
-    background: #000;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-">
-  <canvas id="loadingCanvas"></canvas>
-
-  <p id="loadingText" style="
-      position: absolute;
-      top: 80%;
-      width: 100%;
-      text-align: center;
-      color: white;
-      font-family: Futura;
-      font-size: 2rem;
-      margin: 0;
-  ">
-    Loading photos...
-  </p>
-
-  <p id="controlsText" style="
-      position: absolute;
-      top: 90%;
-      width: 100%;
-      text-align: center;
-      color: white;
-      font-family: Futura;
-      font-size: 1.4rem;
-      opacity: 0.85;
-      margin: 0;
-  ">
-    WASD to move, E to interact
-  </p>
-
-</div>
+  <!-- Loading screen overlay (top-right corner) -->
+  <div id="loadingScreen">
+    <canvas id="loadingCanvas"></canvas>
+    <p id="loadingText">Loading photos...</p>
+    <p id="controlsText">WASD to move, E to interact</p>
+  </div>
 <script type="importmap">
   {
     "imports": {
