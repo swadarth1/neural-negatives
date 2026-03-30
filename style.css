@@ -161,6 +161,10 @@
   margin-bottom: 6px;
 }
 
+.statBlock:nth-child(2) {
+  margin-top: 6px;
+}
+
 .statMain {
   font-weight: 500;
 }
@@ -189,6 +193,28 @@
 
 #statPhotos::after {
   content: " ";
+}
+
+#muteButton {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(12px) saturate(180%);
+  border-radius: 12px;
+  cursor: pointer;
+  z-index: 10000;
+  color: white;
+}
+
+#muteButton:hover {
+  background: rgba(0,0,0,0.5);
 }
 
 @keyframes pulse {

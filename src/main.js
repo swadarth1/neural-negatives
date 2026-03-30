@@ -15,6 +15,23 @@ const renderer = new THREE.WebGLRenderer({ antialias:true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// Setup tooltip
+const tooltipTexture = createTooltipTexture();
+
+const tooltip = new THREE.Sprite(
+  new THREE.SpriteMaterial({
+    map: tooltipTexture,
+    transparent: true
+  })
+);
+
+tooltip.scale.set(4, 1, 1);
+tooltip.visible = false;
+let tooltipShown = false;
+let tooltipPhoto = null;
+
+scene.add(tooltip);
+
 // --- Controls ---
 const controls = new PointerLockControls(camera, document.body);
 document.addEventListener('click', () => controls.lock());
@@ -23,6 +40,22 @@ document.addEventListener('click', () => controls.lock());
 // Flip sound
 const flipSound = new Audio('/assets/sounds/flip.mp3');
 flipSound.volume = 0.32; // adjust volume (0.0 to 1.0)
+
+// Bg audio
+const audio = document.getElementById("backgroundAudio");
+const muteBtn = document.getElementById("muteButton");
+
+// Start playing automatically
+audio.volume = 0.1; // default volume
+audio.play().catch(() => {
+  console.log("Autoplay blocked, will start after user interaction");
+});
+
+// Toggle mute on click
+muteBtn.addEventListener("click", () => {
+  audio.muted = !audio.muted;
+  muteBtn.textContent = audio.muted ? "🔇" : "🔊";
+});
 
 const move = { forward:false, backward:false, left:false, right:false, up:false, down:false };
 document.addEventListener('keydown', e=>{
@@ -41,6 +74,7 @@ document.addEventListener('keyup', e=>{
   if(e.code==='Space') move.up=false;
   if(e.code==='ShiftLeft') move.down=false;
 });
+
 function updateControls(delta){
   const speed = 12*delta;
   const dir = new THREE.Vector3();
@@ -393,6 +427,66 @@ function createPolaroidBackTexture(photoData, aspect) {
   return texture;
 }
 
+function createTooltipTexture() {
+
+  const scale = 4; // increase for higher resolution (2–4 works well)
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024 * scale;
+  canvas.height = 256 * scale;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.scale(scale, scale);
+
+  // background
+  ctx.fillStyle = "rgba(0,0,0,0.65)";
+  ctx.beginPath();
+  ctx.roundRect(0, 0, 1024, 256, 20);
+  ctx.fill();
+
+  // text
+  ctx.font = "72px Futura";
+  ctx.fillStyle = "white";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.fillText("Press E to interact", 512, 128);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.anisotropy = 4;
+
+  return texture;
+}
+
+function getClosestInteractable() {
+  const maxDist = 5;
+
+  let closest = null;
+  let closestDist = Infinity;
+
+  const camPos = camera.position.clone();
+  const camDir = new THREE.Vector3();
+  camera.getWorldDirection(camDir);
+
+  polaroids.forEach(p => {
+    const pos = p.group.position.clone();
+    const dist = camPos.distanceTo(pos);
+
+    if (dist < maxDist) {
+      const dirTo = pos.clone().sub(camPos).normalize();
+      const angle = camDir.angleTo(dirTo);
+
+      if (angle < Math.PI / 4 && dist < closestDist) {
+        closest = p;
+        closestDist = dist;
+      }
+    }
+  });
+
+  return closest;
+}
+
 // --- Branch Material ---
 const branchMaterial = new THREE.LineBasicMaterial({
   color: 0x00ffff,
@@ -674,9 +768,9 @@ function animate(){
   const delta = clock.getDelta();
   updateControls(delta);
 
-  if (Math.random() < 0.01) {
-    console.log("nodes:", nodes.length);
-  }
+  // if (Math.random() < 0.01) {
+  //   console.log("nodes:", nodes.length);
+  // }
   if (!treeFinished) {
     growBranches();
     updateBranchGeometry();
@@ -698,6 +792,37 @@ function animate(){
   sorted.forEach((entry, i)=>{
     entry.p.targetOpacity = i < MAX_VISIBLE_PHOTOS ? 1 : 0;
   });
+
+  // tooltip logic
+  const maxDist = 5;
+  const maxDistSq = maxDist * maxDist;
+  
+  if (!tooltipShown && sorted.length > 0) {
+  
+    const nearest = sorted[0];
+  
+    if (nearest.dist < maxDistSq) {
+  
+      tooltip.position.copy(nearest.p.group.position);
+      tooltip.position.y += 2.5;
+  
+      tooltip.visible = true;
+      tooltipPhoto = nearest.p;
+      tooltipShown = true;
+  
+      setTimeout(() => {
+        tooltip.visible = false;
+      }, 4000);
+  
+    }
+  }
+
+  if (tooltip.visible && tooltipPhoto) {
+    tooltip.position.y =
+      tooltipPhoto.group.position.y +
+      2.5 +
+      Math.sin(now * 0.003) * 0.1;
+  }
 
   // update fade + billboard
   polaroids.forEach(p=>{
