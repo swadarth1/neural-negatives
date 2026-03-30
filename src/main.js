@@ -108,7 +108,7 @@ class Node {
 const nodes = [];
 const root = new Node(new THREE.Vector3(0,0,0));
 nodes.push(root);
-const MAX_TREE_NODES = 10000;
+const MAX_TREE_NODES = 7500;
 
 const influenceDistance = 50;
 const killDistance = 1.5;
@@ -575,7 +575,17 @@ fetch("/data/photos.json")
         flipPivot.add(backMesh);
 
         // Position
-        const attractor = attractors[i];
+        const attractor = attractors[i] || new THREE.Vector3(
+          (Math.random()-0.5)*80*rangeScale,
+          (Math.random()-0.5)*40*rangeScale,
+          (Math.random()-0.5)*80*rangeScale
+        );
+        // if (attractor) {
+        //   group.position.copy(attractor);
+        // } else {
+        //   console.warn("Attractor undefined for photo", i);
+        //   group.position.set(0,0,0); // fallback
+        // }
         group.position.copy(attractor);
 
         // Random tilt
