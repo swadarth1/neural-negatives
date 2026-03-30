@@ -571,81 +571,79 @@ const polaroids = [];
 
 // --- Load Polaroids ---
 fetch("/data/photos.json")
-  .then(res=>res.json())
-  .then(data=>{
-    data.forEach((photo,i)=>{
-      document.getElementById("statTotalPhotos").innerText = data.length;
-      attractors.push(
-        new THREE.Vector3(
-          (Math.random()-0.5)*80*rangeScale,
-          (Math.random()-0.5)*40*rangeScale,
-          (Math.random()-0.5)*80*rangeScale
-        )
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("statTotalPhotos").innerText = data.length;
+
+    // First, generate all attractors and attach them to photo objects
+    data.forEach(photo => {
+      const attractor = new THREE.Vector3(
+        (Math.random() - 0.5) * 80 * rangeScale,
+        (Math.random() - 0.5) * 40 * rangeScale,
+        (Math.random() - 0.5) * 80 * rangeScale
       );
+      photo.attractor = attractor;  // attach directly to photo
+      attractors.push(attractor);
+    });
 
-      // ATTRACTOR MISMATCH DEBUGGING
-      const debugMaterial = new THREE.MeshBasicMaterial({color: 0xff0000});
-      const debugSphereGeo = new THREE.SphereGeometry(0.5, 8, 8);
+    // Optional: debug spheres
+    const debugMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const debugSphereGeo = new THREE.SphereGeometry(0.5, 8, 8);
+    attractors.forEach(attractor => {
+      const sphere = new THREE.Mesh(debugSphereGeo, debugMaterial);
+      sphere.position.copy(attractor);
+      scene.add(sphere);
+    });
 
-      attractors.forEach(attractor => {
-        const sphere = new THREE.Mesh(debugSphereGeo, debugMaterial);
-        sphere.position.copy(attractor);
-        scene.add(sphere);
-      });
+    // Reset tree
+    treeFinished = false;
+    nodes.length = 0;
+    nodes.push(new Node(new THREE.Vector3(0, 0, 0)));
 
-      treeFinished = false;
-      nodes.length = 0;
-      nodes.push(new Node(new THREE.Vector3(0,0,0)));
-
-      textureLoader.load(`/assets/photos/${photo.filename}`, tex=>{
-        const aspect = photo.width/photo.height;
-        const group = new THREE.Group();      // billboard rotation
-        const flipPivot = new THREE.Group();  // flip animation
+    // Now load textures
+    data.forEach(photo => {
+      textureLoader.load(`/assets/photos/${photo.filename}`, tex => {
+        const aspect = photo.width / photo.height;
+        const group = new THREE.Group();
+        const flipPivot = new THREE.Group();
         group.add(flipPivot);
 
         const frameHeight = 3.6;
-        const frameWidth = frameHeight*aspect;
+        const frameWidth = frameHeight * aspect;
         const bottomBorder = 0.5;
 
         // Frame
         const frameGeo = new THREE.PlaneGeometry(frameWidth, frameHeight);
-        const frameMat = new THREE.MeshBasicMaterial({color:0xffffff});
+        const frameMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         const frameMesh = new THREE.Mesh(frameGeo, frameMat);
-        frameMesh.position.y = -bottomBorder/2;
+        frameMesh.position.y = -bottomBorder / 2;
         flipPivot.add(frameMesh);
 
         // Photo front
-        const photoHeight = frameHeight-bottomBorder-0.2;
-        const photoWidth = photoHeight*aspect;
+        const photoHeight = frameHeight - bottomBorder - 0.2;
+        const photoWidth = photoHeight * aspect;
         const photoMesh = new THREE.Mesh(
           new THREE.PlaneGeometry(photoWidth, photoHeight),
-          new THREE.MeshBasicMaterial({map:tex, transparent:true, opacity:0})
+          new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0 })
         );
-        photoMesh.position.set(0, (bottomBorder+0.2)/2 - 0.5, 0.01);
-        photoMesh.material.opacity = 0;
+        photoMesh.position.set(0, (bottomBorder + 0.2) / 2 - 0.5, 0.01);
         flipPivot.add(photoMesh);
 
         // Photo back
-        const backTex = createPolaroidBackTexture(data[i], aspect);
+        const backTex = createPolaroidBackTexture(photo, aspect);
         const backMesh = new THREE.Mesh(
           new THREE.PlaneGeometry(photoWidth, photoHeight),
-          new THREE.MeshBasicMaterial({map: backTex, transparent:false})
+          new THREE.MeshBasicMaterial({ map: backTex, transparent: false })
         );
         backMesh.position.copy(photoMesh.position);
-        backMesh.visible = true;
         backMesh.rotation.y = Math.PI;
         flipPivot.add(backMesh);
 
-        // Position
-        const attractor = attractors[i] || new THREE.Vector3(
-          (Math.random()-0.5)*80*rangeScale,
-          (Math.random()-0.5)*40*rangeScale,
-          (Math.random()-0.5)*80*rangeScale
-        );
-        group.position.copy(attractor);
+        // **Use the photo’s own attractor**
+        group.position.copy(photo.attractor);
 
         // Random tilt
-        flipPivot.rotation.z = (Math.random()-0.5)*0.2;
+        flipPivot.rotation.z = (Math.random() - 0.5) * 0.2;
 
         polaroids.push({
           group,
