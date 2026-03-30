@@ -147,7 +147,7 @@ const MAX_TREE_NODES = 7500;
 const influenceDistance = 50;
 const killDistance = 1.5;
 const stepSize = 0.9;
-const rangeScale = 1;
+const rangeScale = 1.15;
 
 // Photo Fading/Development
 const MAX_VISIBLE_PHOTOS = 42;
@@ -582,6 +582,16 @@ fetch("/data/photos.json")
           (Math.random()-0.5)*80*rangeScale
         )
       );
+
+      // ATTRACTOR MISMATCH DEBUGGING
+      const debugMaterial = new THREE.MeshBasicMaterial({color: 0xff0000});
+      const debugSphereGeo = new THREE.SphereGeometry(0.5, 8, 8);
+
+      attractors.forEach(attractor => {
+        const sphere = new THREE.Mesh(debugSphereGeo, debugMaterial);
+        sphere.position.copy(attractor);
+        scene.add(sphere);
+      });
 
       treeFinished = false;
       nodes.length = 0;
