@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Neural Negatives</title>
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+  <script type="module" crossorigin src="/assets/index-B6MYyJ3c.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-C-AkonB4.css">
+</head>
+<body>
+  <!-- Soundtrack -->
+<audio id="backgroundAudio" loop>
+  <source src="/assets/runningaround-CYnU17wv.mp3" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+<!-- Mute button -->
+<div id="muteButton">🔊</div>
+  <!-- Loading screen overlay -->
+  <div id="loadingScreen">
+    <canvas id="loadingCanvas"></canvas>
+    <div id="loadingContent">
+      <p id="loadingText">Loading photos...</p>
+      <p class="controlsText">WASD and Shift/Space to move</p>
+      <p class="controlsText">E to interact</p>
+    </div>
+  </div>
+
+  <!-- Loading screen JS (runs first) -->
+  <div id="discoveryHUD">
+
+  <div class="statBlock">
+    <div class="statMain">
+      Photos revealed: <span id="statPhotos">0</span>/<span id="statTotalPhotos">0</span>
+    </div>
+  </div>
+
+  <div class="statBlock">
+    <div class="statMain">
+      Cities discovered: <span id="statCities">0</span>
+    </div>
+    <div id="cityList" class="subStat"></div>
+  </div>
+
+  <div class="statBlock">
+    <div class="statMain">
+      Countries discovered: <span id="statCountries">0</span>
+    </div>
+    <div id="countryList" class="subStat"></div>
+  </div>
+
+  <div class="statBlock">
+    <div class="statMain">
+      Total distance covered:
+      <span id="statDistance">0</span> km
+    </div>
+  </div>
+
+</div>
+
+  <!-- Your main JS (runs after loading screen is set up) -->
+  <div id="authorWatermark">
+    @ Sid Krishnan · 2026 <br>
+    <a href="https://sidkrishnan.framer.website/" target="_blank">sidkrishnan.framer.website</a>
+  </div>
+</body>
+</html>

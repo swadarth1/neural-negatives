@@ -1,62 +1,50 @@
 import * as THREE from "three";
 import TWEEN from "https://unpkg.com/@tweenjs/tween.js@20.0.0/dist/tween.esm.js";
 import { PointerLockControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js";
-await document.fonts.load('72px "Sid_handwriting"');
+import { incrementPhotoProgress, loadPhotoList } from "./loadingScreen.js";
 
 // --- Scene & Camera ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x00000a);
 const clock = new THREE.Clock();
 
-const camera = new THREE.PerspectiveCamera(90, window.innerWidth/window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 1.6, 60);
 
-const renderer = new THREE.WebGLRenderer({ antialias:true });
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Setup tooltip
+// --- Tooltip ---
 const tooltipTexture = createTooltipTexture();
-
-const tooltip = new THREE.Sprite(
-  new THREE.SpriteMaterial({
-    map: tooltipTexture,
-    transparent: true
-  })
-);
-
+const tooltip = new THREE.Sprite(new THREE.SpriteMaterial({ map: tooltipTexture, transparent: true }));
 tooltip.scale.set(4, 1, 1);
 tooltip.visible = false;
 let tooltipShown = false;
 let tooltipPhoto = null;
-
 scene.add(tooltip);
 
 // --- Controls ---
 const controls = new PointerLockControls(camera, document.body);
-document.addEventListener('click', () => controls.lock());
+document.addEventListener("click", () => controls.lock());
 
 // --- Sounds ---
-// Flip sound
-const flipSound = new Audio('/assets/sounds/flip.mp3');
-flipSound.volume = 0.32; // adjust volume (0.0 to 1.0)
+const flipSound = new Audio("/assets/sounds/flip.mp3");
+flipSound.volume = 0.32;
+const flipReverseSound = new Audio("/assets/sounds/flip-reverse.mp3");
+flipReverseSound.volume = 0.32;
 
-// Bg audio
 const audio = document.getElementById("backgroundAudio");
 const muteBtn = document.getElementById("muteButton");
+audio.volume = 0.1;
+audio.play().catch(() => console.log("Autoplay blocked, will start after user interaction"));
 
-// Start playing automatically
-audio.volume = 0.1; // default volume
-audio.play().catch(() => {
-  console.log("Autoplay blocked, will start after user interaction");
-});
-
-// Toggle mute on click
 muteBtn.addEventListener("click", () => {
   audio.muted = !audio.muted;
   muteBtn.textContent = audio.muted ? "🔇" : "🔊";
 });
 
+// --- Movement ---
 const move = { forward:false, backward:false, left:false, right:false, up:false, down:false };
 document.addEventListener('keydown', e=>{
   if(e.code==='KeyW') move.forward=true;
@@ -89,7 +77,10 @@ function updateControls(delta){
   if(move.down) camera.position.y -= speed;
 }
 
-// --- UI/HUD Functions ---
+// --- Stats & UI ---
+const discoveryStats = { photosRevealed:0, cities:new Set(), countries:new Set(), totalDistance:0, lastLat:null, lastLon:null };
+const cityCounts = {};
+const countryCounts = {};
 function updateDiscoveryUI(){
 
   document.getElementById("statPhotos").innerText =
@@ -104,7 +95,6 @@ function updateDiscoveryUI(){
   document.getElementById("statDistance").innerText =
     Math.round(discoveryStats.totalDistance).toLocaleString();
 }
-
 function pulseStat(id){
 
   const el = document.getElementById(id);
@@ -114,11 +104,7 @@ function pulseStat(id){
   setTimeout(()=>{
     el.classList.remove("statPulse");
   },400);
-
 }
-
-const cityCounts = {};
-const countryCounts = {};
 
 function updateLocationLists() {
 
@@ -151,20 +137,10 @@ function updateLocationLists() {
   countryList.textContent = countryStr;
 }
 
-// --- Stats Tracker ---
-const discoveryStats = {
-  photosRevealed: 0,
-  cities: new Set(),
-  countries: new Set(),
-  totalDistance: 0,
-  lastLat: null,
-  lastLon: null
-};
 
-// --- Attractors ---
+// --- Attractors & Nodes ---
 const attractors = [];
 
-// --- Nodes / Branches ---
 class Node {
   constructor(position, parent=null){
     this.position = position.clone();
@@ -173,18 +149,158 @@ class Node {
     this.count = 0;
   }
 }
+
 const nodes = [];
 const root = new Node(new THREE.Vector3(0,0,0));
 nodes.push(root);
-const MAX_TREE_NODES = 7500;
 
+const MAX_TREE_NODES = 7500;
 const influenceDistance = 50;
 const killDistance = 1.5;
 const stepSize = 0.9;
 const rangeScale = 1.15;
 
-// Photo Fading/Development
-const MAX_VISIBLE_PHOTOS = 42;
+const MAX_VISIBLE_PHOTOS = 32;
+
+let treeFinished = false;
+
+
+// --- Polaroids ---
+const textureLoader = new THREE.TextureLoader();
+const polaroids = [];
+
+
+// --- Load Photos & Preload Textures ---
+async function loadPolaroids(){
+
+  const data = await loadPhotoList();
+  document.getElementById("statTotalPhotos").innerText = data.length;
+
+  // Generate attractors
+  data.forEach(photo => {
+
+    const attractor = new THREE.Vector3(
+      (Math.random() - 0.5) * 80 * rangeScale,
+      (Math.random() - 0.5) * 40 * rangeScale,
+      (Math.random() - 0.5) * 80 * rangeScale
+    );
+
+    photo.attractor = attractor;
+    attractors.push(attractor);
+
+  });
+
+
+  // Reset tree
+  treeFinished = false;
+  nodes.length = 0;
+  nodes.push(new Node(new THREE.Vector3(0,0,0)));
+
+
+  // PRELOAD ALL TEXTURES
+  const textures = await Promise.all(
+
+    data.map(photo => {
+
+      return new Promise(resolve => {
+
+        textureLoader.load(
+          `/assets/photos/${photo.filename}`,
+          tex => {
+
+            renderer.initTexture(tex); // force GPU upload
+            incrementPhotoProgress();
+
+            resolve(tex);
+
+          }
+        );
+
+      });
+
+    })
+
+  );
+
+
+  // Create polaroids using preloaded textures
+  data.forEach((photo, i) => {
+
+    const tex = textures[i];
+    const aspect = photo.width / photo.height;
+
+    const group = new THREE.Group();
+    const flipPivot = new THREE.Group();
+    group.add(flipPivot);
+
+    const frameHeight = 3.6;
+    const bottomBorder = 0.5;
+    const frameWidth = frameHeight * aspect;
+
+    // Frame
+    const frameMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(frameWidth, frameHeight),
+      new THREE.MeshBasicMaterial({ color:0xffffff })
+    );
+
+    frameMesh.position.y = -bottomBorder / 2;
+    flipPivot.add(frameMesh);
+
+
+    // Photo front
+    const photoHeight = frameHeight - bottomBorder - 0.2;
+    const photoWidth = photoHeight * aspect;
+
+    const photoMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(photoWidth, photoHeight),
+      new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent:true,
+        opacity:0
+      })
+    );
+
+    photoMesh.position.set(0,(bottomBorder+0.2)/2 - 0.5,0.01);
+    flipPivot.add(photoMesh);
+
+
+    // Photo back
+    const backTex = createPolaroidBackTexture(photo, aspect);
+
+    const backMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(photoWidth, photoHeight),
+      new THREE.MeshBasicMaterial({ map:backTex })
+    );
+
+    backMesh.position.copy(photoMesh.position);
+    backMesh.rotation.y = Math.PI;
+
+    flipPivot.add(backMesh);
+
+
+    group.position.copy(photo.attractor);
+    flipPivot.rotation.z = (Math.random() - 0.5) * 0.2;
+
+
+    polaroids.push({
+      group,
+      pivot:flipPivot,
+      front:photoMesh,
+      back:backMesh,
+      flipped:false,
+      opacity:0,
+      targetOpacity:0,
+      distance:Infinity,
+      data:photo,
+      discovered:false
+    });
+
+
+    scene.add(group);
+
+  });
+
+}
 
 // --- Flip on 'E' press ---
 document.addEventListener('keydown', e=>{
@@ -280,16 +396,15 @@ if(closest){
     }
 
     // play sound
-    flipSound.currentTime = 0;
-    flipSound.play();
-
-    const flipDirection = Math.random();
+    const sound = closest.flipped ? flipSound : flipReverseSound;
+    sound.currentTime = 0;
+    sound.play();
 
     // animate rotation
     new TWEEN.Tween(closest.pivot.rotation)
     .to({
       y: closest.flipped ? (Math.random() > 0.5 ? Math.PI : -Math.PI) : 0,
-      z: closest.flipped ? (Math.random()-0.5)*0.25 : 0
+      z: closest.flipped ? (Math.random() - 0.5) * 0.25 : 0
     }, 450)
     .easing(TWEEN.Easing.Quadratic.Out)
     .start();
@@ -341,7 +456,8 @@ function createPolaroidBackTexture(photoData, aspect) {
   const b = 20 + Math.random()*20;
 
   const scale = canvas.height / 512;
-  const textColor = `rgba(${r}, ${g}, ${b})`;
+  // const textColor = `rgba(${r}, ${g}, ${b})`;
+  const textColor = `#00000a`;
 
   ctx.globalAlpha = 0.95 + Math.random() * 0.05;
   ctx.fillStyle = textColor;
@@ -459,34 +575,6 @@ function createTooltipTexture() {
   return texture;
 }
 
-function getClosestInteractable() {
-  const maxDist = 5;
-
-  let closest = null;
-  let closestDist = Infinity;
-
-  const camPos = camera.position.clone();
-  const camDir = new THREE.Vector3();
-  camera.getWorldDirection(camDir);
-
-  polaroids.forEach(p => {
-    const pos = p.group.position.clone();
-    const dist = camPos.distanceTo(pos);
-
-    if (dist < maxDist) {
-      const dirTo = pos.clone().sub(camPos).normalize();
-      const angle = camDir.angleTo(dirTo);
-
-      if (angle < Math.PI / 4 && dist < closestDist) {
-        closest = p;
-        closestDist = dist;
-      }
-    }
-  });
-
-  return closest;
-}
-
 // --- Branch Material ---
 const branchMaterial = new THREE.LineBasicMaterial({
   color: 0x00ffff,
@@ -510,7 +598,7 @@ scene.add(branchLines);
 
 let branchIndex = 0;
 
-let treeFinished = false;
+// let treeFinished = false;
 
 function growBranches() {
     if (nodes.length > MAX_TREE_NODES) {
@@ -658,105 +746,6 @@ function haversine(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-// --- Polaroids ---
-const textureLoader = new THREE.TextureLoader();
-const polaroids = [];
-
-
-// --- Load Polaroids ---
-fetch("/data/photos.json")
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById("statTotalPhotos").innerText = data.length;
-
-    // First, generate all attractors and attach them to photo objects
-    data.forEach(photo => {
-      const attractor = new THREE.Vector3(
-        (Math.random() - 0.5) * 80 * rangeScale,
-        (Math.random() - 0.5) * 40 * rangeScale,
-        (Math.random() - 0.5) * 80 * rangeScale
-      );
-      photo.attractor = attractor;  // attach directly to photo
-      attractors.push(attractor);
-    });
-
-    // // Optional: debug spheres
-    // const debugMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    // const debugSphereGeo = new THREE.SphereGeometry(0.5, 8, 8);
-    // attractors.forEach(attractor => {
-    //   const sphere = new THREE.Mesh(debugSphereGeo, debugMaterial);
-    //   sphere.position.copy(attractor);
-    //   scene.add(sphere);
-    // });
-
-    // Reset tree
-    treeFinished = false;
-    nodes.length = 0;
-    nodes.push(new Node(new THREE.Vector3(0, 0, 0)));
-
-    // Now load textures
-    data.forEach(photo => {
-      textureLoader.load(`/assets/photos/${photo.filename}`, tex => {
-        const aspect = photo.width / photo.height;
-        const group = new THREE.Group();
-        const flipPivot = new THREE.Group();
-        group.add(flipPivot);
-
-        const frameHeight = 3.6;
-        const frameWidth = frameHeight * aspect;
-        const bottomBorder = 0.5;
-
-        // Frame
-        const frameGeo = new THREE.PlaneGeometry(frameWidth, frameHeight);
-        const frameMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const frameMesh = new THREE.Mesh(frameGeo, frameMat);
-        frameMesh.position.y = -bottomBorder / 2;
-        flipPivot.add(frameMesh);
-
-        // Photo front
-        const photoHeight = frameHeight - bottomBorder - 0.2;
-        const photoWidth = photoHeight * aspect;
-        const photoMesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(photoWidth, photoHeight),
-          new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0 })
-        );
-        photoMesh.position.set(0, (bottomBorder + 0.2) / 2 - 0.5, 0.01);
-        flipPivot.add(photoMesh);
-
-        // Photo back
-        const backTex = createPolaroidBackTexture(photo, aspect);
-        const backMesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(photoWidth, photoHeight),
-          new THREE.MeshBasicMaterial({ map: backTex, transparent: false })
-        );
-        backMesh.position.copy(photoMesh.position);
-        backMesh.rotation.y = Math.PI;
-        flipPivot.add(backMesh);
-
-        // **Use the photo’s own attractor**
-        group.position.copy(photo.attractor);
-
-        // Random tilt
-        flipPivot.rotation.z = (Math.random() - 0.5) * 0.2;
-
-        polaroids.push({
-          group,
-          pivot: flipPivot,
-          front: photoMesh,
-          back: backMesh,
-          flipped: false,
-          opacity: 0,
-          targetOpacity: 0,
-          distance: Infinity,
-          data: photo,
-          discovered: false,
-        });
-
-        scene.add(group);
-      });
-    });
-  });
-
 // Reusable vectors
 const tempWorld = new THREE.Vector3();
 const tempLook = new THREE.Vector3();
@@ -764,91 +753,111 @@ const tempCam = new THREE.Vector3();
   
 // --- Animate ---
 function animate(){
+
   requestAnimationFrame(animate);
+
   const delta = clock.getDelta();
   updateControls(delta);
 
-  // if (Math.random() < 0.01) {
-  //   console.log("nodes:", nodes.length);
-  // }
-  if (!treeFinished) {
+  if (!treeFinished){
     growBranches();
     updateBranchGeometry();
   }
+
   pulseBranches();
 
   const now = performance.now();
   tempCam.copy(camera.position);
 
-  // compute distances
+
+  // distance sort
   const sorted = polaroids
-    .map(p => {
+    .map(p=>{
       p.group.getWorldPosition(tempWorld);
-      return { p, dist: tempWorld.distanceToSquared(tempCam) };
+      return {p, dist:tempWorld.distanceToSquared(tempCam)};
     })
     .sort((a,b)=>a.dist-b.dist);
 
-  // mark nearest photos
-  sorted.forEach((entry, i)=>{
+
+  // nearest visible photos
+  sorted.forEach((entry,i)=>{
     entry.p.targetOpacity = i < MAX_VISIBLE_PHOTOS ? 1 : 0;
   });
 
-  // tooltip logic
+
+  // tooltip
   const maxDist = 5;
   const maxDistSq = maxDist * maxDist;
-  
-  if (!tooltipShown && sorted.length > 0) {
-  
+
+  if (!tooltipShown && sorted.length > 0){
+
     const nearest = sorted[0];
-  
-    if (nearest.dist < maxDistSq) {
-  
+
+    if (nearest.dist < maxDistSq){
+
       tooltip.position.copy(nearest.p.group.position);
       tooltip.position.y += 2.5;
-  
+
       tooltip.visible = true;
       tooltipPhoto = nearest.p;
       tooltipShown = true;
-  
-      setTimeout(() => {
-        tooltip.visible = false;
-      }, 4000);
-  
+
+      setTimeout(()=>{ tooltip.visible=false },4000);
+
     }
   }
 
-  if (tooltip.visible && tooltipPhoto) {
+
+  if (tooltip.visible && tooltipPhoto){
+
     tooltip.position.y =
       tooltipPhoto.group.position.y +
       2.5 +
-      Math.sin(now * 0.003) * 0.1;
+      Math.sin(now*0.003)*0.1;
+
   }
 
-  // update fade + billboard
+
+  // fade + billboard
   polaroids.forEach(p=>{
 
     p.group.getWorldPosition(tempWorld);
 
     tempLook.copy(camera.position);
     tempLook.y = tempWorld.y;
+
     p.group.lookAt(tempLook);
 
-    // smooth fade
+
     const speed = delta * 2;
+
     p.opacity += (p.targetOpacity - p.opacity) * speed;
 
     p.front.material.opacity = p.opacity;
+
     const visible = p.opacity > 0.01;
 
     p.front.visible = visible;
     p.back.visible = visible;
+
   });
 
+
   TWEEN.update();
-  renderer.render(scene, camera);
+  renderer.render(scene,camera);
+
 }
 
-animate();
+async function init() {
+  await document.fonts.load('72px "Sid_handwriting"');
+  await loadPolaroids();
+  animate();
+}
+
+init().catch(error => {
+  console.error("Failed to initialize the scene:", error);
+  animate();
+});
 
 // --- Resize ---
 window.addEventListener('resize',()=>{

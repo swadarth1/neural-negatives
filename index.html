@@ -15,11 +15,14 @@
 
 <!-- Mute button -->
 <div id="muteButton">🔊</div>
-  <!-- Loading screen overlay (top-right corner) -->
+  <!-- Loading screen overlay -->
   <div id="loadingScreen">
     <canvas id="loadingCanvas"></canvas>
-    <p id="loadingText">Loading photos...</p>
-    <p id="controlsText">WASD to move, E to interact</p>
+    <div id="loadingContent">
+      <p id="loadingText">Loading photos...</p>
+      <p class="controlsText">WASD and Shift/Space to move</p>
+      <p class="controlsText">E to interact</p>
+    </div>
   </div>
 <script type="importmap">
   {
