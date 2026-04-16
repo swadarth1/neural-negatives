@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Neural Negatives</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <audio id="backgroundAudio" loop>
+    <source src="/assets/sounds/runningaround.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+
+  <div id="loadingScreen">
+    <canvas id="loadingCanvas"></canvas>
+    <div id="loadingContent">
+      <p id="loadingText">Loading photos...</p>
+      <p class="controlsText">WASD and Shift/Space to move</p>
+      <p class="controlsText">E to interact</p>
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+
+  <script type="module" src="/src/loadingScreen.js"></script>
+
+  <div id="sidePanels">
+    <div id="discoveryHUD">
+      <div class="statBlock">
+        <div class="statMain">
+          Photos revealed: <span id="statPhotos">0</span>/<span id="statTotalPhotos">0</span>
+        </div>
+      </div>
+
+      <div class="statBlock">
+        <div class="statMain">
+          Cities discovered: <span id="statCities">0</span>
+        </div>
+        <div id="cityList" class="subStat"></div>
+      </div>
+
+      <div class="statBlock">
+        <div class="statMain">
+          Countries discovered: <span id="statCountries">0</span>
+        </div>
+        <div id="countryList" class="subStat"></div>
+      </div>
+
+      <div class="statBlock">
+        <div class="statMain">
+          Total distance covered:
+          <span id="statDistance">0</span> km
+        </div>
+      </div>
+    </div>
+
+    <div id="controlPanel" class="is-collapsed">
+      <div class="panelHeader">
+        <button id="controlPanelToggle" type="button" class="panelToggle">
+          <span class="panelHeading">
+            <span class="panelTitle">Controls</span>
+            <span class="panelSubtitle">Press ESC to modify</span>
+          </span>
+          <span id="panelChevron" class="panelChevron">▾</span>
+        </button>
+
+        <button id="muteButton" type="button" class="panelIconButton" aria-label="Toggle sound">🔊</button>
+      </div>
+
+      <div id="controlPanelBody">
+        <label class="controlGroup" for="nodeSpread">
+          <span class="controlHeader">Node Spread</span>
+          <span id="nodeSpreadValue" class="controlValue">1.15</span>
+          <input id="nodeSpread" type="range" min="0.25" max="3" step="0.05" value="1.15">
+        </label>
+
+        <label class="controlGroup" for="renderDistance">
+          <span class="controlHeader">Render Distance</span>
+          <span id="renderDistanceValue" class="controlValue">32</span>
+          <input id="renderDistance" type="range" min="1" max="1" step="1" value="1">
+        </label>
+
+        <label class="controlGroup" for="themeSelect">
+          <span class="controlHeader">Theme</span>
+          <select id="themeSelect"></select>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+
+  <div id="authorWatermark">
+    @ Sid Krishnan · 2026 <br>
+    <a href="https://sidkrishnan.framer.website/" target="_blank">sidkrishnan.framer.website</a>
+  </div>
+</body>
+</html>
