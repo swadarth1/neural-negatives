@@ -323,6 +323,7 @@ function finishLoading() {
 
   overlayHidden = true;
   loadingScreen.classList.add("is-hidden");
+  window.dispatchEvent(new CustomEvent("loading-screen-hidden"));
 
   window.setTimeout(() => {
     if (animationFrameId !== null) {

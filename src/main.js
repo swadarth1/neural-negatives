@@ -3,9 +3,16 @@ import TWEEN from "https://unpkg.com/@tweenjs/tween.js@20.0.0/dist/tween.esm.js"
 import { PointerLockControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js";
 import { incrementPhotoProgress, loadPhotoList } from "./loadingScreen.js";
 
+const themeOptions = [
+  { label: "Deep Midnight", value: "#0B1020" },
+  { label: "Burnt Espresso", value: "#1A0F0A" },
+  { label: "Forest Ink", value: "#10261C" },
+  { label: "Aubergine Dusk", value: "#1E1228" },
+  { label: "Storm Teal", value: "#0E2A36" },
+];
+
 // --- Scene & Camera ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x00000a);
 const clock = new THREE.Clock();
 
 const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -14,6 +21,199 @@ camera.position.set(0, 1.6, 60);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
+function ensureControlPanel() {
+  let panel = document.getElementById("controlPanel");
+
+  if (!panel) {
+    panel = document.createElement("section");
+    panel.id = "controlPanel";
+    panel.innerHTML = `
+      <button id="controlPanelToggle" type="button" aria-expanded="false">
+        Controls <span id="panelChevron">\u25B8</span>
+      </button>
+      <p class="controlPanelHint">press esc to show cursor</p>
+      <div class="controlPanelBody">
+        <label class="sliderControl">
+          <span class="controlLabel">Polaroid Spread</span>
+          <div class="sliderRow">
+            <input id="nodeSpread" type="range" min="0.5" max="3" step="0.05" value="1">
+            <span id="nodeSpreadValue" class="sliderValue">1.00</span>
+          </div>
+        </label>
+        <label class="sliderControl">
+          <span class="controlLabel">Render distance</span>
+          <div class="sliderRow">
+            <input id="renderDistance" type="range" min="1" max="42" step="1" value="42">
+            <span id="renderDistanceValue" class="sliderValue">42</span>
+          </div>
+          <span class="controlSubheading"> Lower values = better performance</span>
+        </label>
+        <label class="selectControl">
+          Theme
+          <select id="themeSelect"></select>
+        </label>
+      </div>
+    `;
+
+    Object.assign(panel.style, {
+      position: "fixed",
+      top: "24px",
+      right: "24px",
+      zIndex: "10000",
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px",
+      width: "min(320px, calc(100vw - 48px))",
+      padding: "14px 16px",
+      borderRadius: "16px",
+      color: "white",
+      background: "rgba(0, 0, 0, 0.28)",
+      backdropFilter: "blur(14px) saturate(180%)",
+      WebkitBackdropFilter: "blur(14px) saturate(180%)",
+      boxShadow: "0 8px 30px rgba(0, 0, 0, 0.35)",
+      fontFamily: "Futura, sans-serif",
+      pointerEvents: "auto",
+      visibility: "hidden",
+      opacity: "0",
+      transition: "opacity 0.25s ease",
+    });
+
+    document.body.appendChild(panel);
+  }
+
+  const toggle = panel.querySelector("#controlPanelToggle");
+  const chevron = panel.querySelector("#panelChevron");
+  const hint = panel.querySelector(".controlPanelHint");
+  const body = panel.querySelector(".controlPanelBody");
+
+  if (toggle) {
+    Object.assign(toggle.style, {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      width: "100%",
+      padding: "0",
+      border: "0",
+      background: "transparent",
+      color: "inherit",
+      font: "inherit",
+      cursor: "pointer",
+    });
+  }
+
+  if (body) {
+    Object.assign(body.style, {
+      display: "grid",
+      gap: "12px",
+    });
+  }
+
+  if (hint) {
+    Object.assign(hint.style, {
+      margin: "0",
+      fontSize: "0.76rem",
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+      color: "rgba(255, 255, 255, 0.72)",
+    });
+  }
+
+  panel.querySelectorAll("label").forEach((label) => {
+    Object.assign(label.style, {
+      display: "grid",
+      gap: "6px",
+      fontSize: "0.95rem",
+    });
+  });
+
+  panel.querySelectorAll(".sliderRow").forEach((row) => {
+    Object.assign(row.style, {
+      display: "grid",
+      gridTemplateColumns: "1fr auto",
+      gap: "12px",
+      alignItems: "center",
+    });
+  });
+
+  panel.querySelectorAll(".sliderValue").forEach((value) => {
+    Object.assign(value.style, {
+      minWidth: "3ch",
+      textAlign: "right",
+      fontVariantNumeric: "tabular-nums",
+      color: "rgba(255, 255, 255, 0.92)",
+    });
+  });
+
+  panel.querySelectorAll(".controlSubheading").forEach((subheading) => {
+    Object.assign(subheading.style, {
+      fontSize: "0.74rem",
+      lineHeight: "1.35",
+      color: "rgba(255, 255, 255, 0.66)",
+    });
+  });
+
+  panel.querySelectorAll('input[type="range"]').forEach((field) => {
+    Object.assign(field.style, {
+      width: "100%",
+      margin: "0",
+      accentColor: "rgba(255, 255, 255, 0.92)",
+    });
+  });
+
+  panel.querySelectorAll("select").forEach((field) => {
+    Object.assign(field.style, {
+      width: "100%",
+      padding: "10px 12px",
+      border: "1px solid rgba(255, 255, 255, 0.2)",
+      borderRadius: "12px",
+      color: "white",
+      background: "rgba(255, 255, 255, 0.1)",
+      boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.06)",
+      backdropFilter: "blur(14px) saturate(180%)",
+      WebkitBackdropFilter: "blur(14px) saturate(180%)",
+      outline: "none",
+      appearance: "none",
+    });
+  });
+
+  panel.querySelectorAll("option").forEach((option) => {
+    Object.assign(option.style, {
+      color: "#111",
+    });
+  });
+
+  return {
+    nodeSpreadInput: panel.querySelector("#nodeSpread"),
+    nodeSpreadValue: panel.querySelector("#nodeSpreadValue"),
+    renderDistanceInput: panel.querySelector("#renderDistance"),
+    renderDistanceValue: panel.querySelector("#renderDistanceValue"),
+    themeSelect: panel.querySelector("#themeSelect"),
+    controlPanel: panel,
+    controlPanelToggle: toggle,
+    panelChevron: chevron,
+    controlPanelHint: hint,
+    controlPanelBody: body,
+  };
+}
+
+const {
+  nodeSpreadInput,
+  nodeSpreadValue,
+  renderDistanceInput,
+  renderDistanceValue,
+  themeSelect,
+  controlPanel,
+  controlPanelToggle,
+  panelChevron,
+  controlPanelHint,
+  controlPanelBody,
+} = ensureControlPanel();
+
+window.addEventListener("loading-screen-hidden", () => {
+  controlPanel.style.visibility = "visible";
+  controlPanel.style.opacity = "1";
+});
 
 // --- Tooltip ---
 const tooltipTexture = createTooltipTexture();
@@ -38,10 +238,11 @@ const audio = document.getElementById("backgroundAudio");
 const muteBtn = document.getElementById("muteButton");
 audio.volume = 0.1;
 audio.play().catch(() => console.log("Autoplay blocked, will start after user interaction"));
+updateMuteButtonLabel();
 
 muteBtn.addEventListener("click", () => {
   audio.muted = !audio.muted;
-  muteBtn.textContent = audio.muted ? "🔇" : "🔊";
+  updateMuteButtonLabel();
 });
 
 // --- Movement ---
@@ -75,6 +276,10 @@ function updateControls(delta){
   if(move.right) camera.position.addScaledVector(right, speed);
   if(move.up) camera.position.y += speed;
   if(move.down) camera.position.y -= speed;
+}
+
+function updateMuteButtonLabel() {
+  muteBtn.textContent = audio.muted ? "\u{1F507}" : "\u{1F50A}";
 }
 
 // --- Stats & UI ---
@@ -158,27 +363,87 @@ const MAX_TREE_NODES = 7500;
 const influenceDistance = 50;
 const killDistance = 1.5;
 const stepSize = 0.9;
-const rangeScale = 1.15;
-
-const MAX_VISIBLE_PHOTOS = 32;
+let rangeScale = Number(nodeSpreadInput.value);
+let maxVisiblePhotos = 42;
 
 let treeFinished = false;
+let photoCatalog = [];
+let rebuildLayoutFrame = null;
+
+setTheme(themeOptions[1].value);
+setupControlPanel();
 
 
 // --- Polaroids ---
 const textureLoader = new THREE.TextureLoader();
 const polaroids = [];
 
+function setTheme(color) {
+  scene.background = new THREE.Color(color);
+  document.body.style.backgroundColor = color;
+}
 
-// --- Load Photos & Preload Textures ---
-async function loadPolaroids(){
+function setupControlPanel() {
+  setControlPanelExpanded(false);
 
-  const data = await loadPhotoList();
-  document.getElementById("statTotalPhotos").innerText = data.length;
+  themeOptions.forEach((theme) => {
+    const option = document.createElement("option");
+    option.value = theme.value;
+    option.textContent = theme.label;
+    themeSelect.appendChild(option);
+  });
 
-  // Generate attractors
-  data.forEach(photo => {
+  themeSelect.value = themeOptions[1].value;
+  nodeSpreadValue.textContent = rangeScale.toFixed(2);
+  renderDistanceValue.textContent = String(maxVisiblePhotos);
 
+  controlPanelToggle.addEventListener("click", () => {
+    setControlPanelExpanded(controlPanel.classList.contains("is-collapsed"));
+  });
+
+  nodeSpreadInput.addEventListener("input", () => {
+    rangeScale = Number(nodeSpreadInput.value);
+    nodeSpreadValue.textContent = rangeScale.toFixed(2);
+    scheduleSceneLayoutRebuild();
+  });
+
+  renderDistanceInput.addEventListener("input", () => {
+    maxVisiblePhotos = Number(renderDistanceInput.value);
+    renderDistanceValue.textContent = String(maxVisiblePhotos);
+  });
+
+  themeSelect.addEventListener("change", () => {
+    setTheme(themeSelect.value);
+  });
+}
+
+function setControlPanelExpanded(expanded) {
+  controlPanel.classList.toggle("is-collapsed", !expanded);
+  controlPanelToggle.setAttribute("aria-expanded", String(expanded));
+  panelChevron.textContent = expanded ? "\u25BE" : "\u25B8";
+  controlPanelHint.style.display = expanded ? "none" : "block";
+  controlPanelBody.style.display = expanded ? "grid" : "none";
+}
+
+function syncRenderDistanceControl() {
+  const photoCount = Math.max(1, photoCatalog.length);
+  maxVisiblePhotos = Math.min(maxVisiblePhotos, photoCount);
+  renderDistanceInput.max = String(photoCount);
+  renderDistanceInput.value = String(maxVisiblePhotos);
+  renderDistanceValue.textContent = String(maxVisiblePhotos);
+}
+
+function resetTree() {
+  treeFinished = false;
+  attractors.length = 0;
+  nodes.length = 0;
+  nodes.push(new Node(new THREE.Vector3(0, 0, 0)));
+}
+
+function assignAttractors() {
+  attractors.length = 0;
+
+  photoCatalog.forEach((photo) => {
     const attractor = new THREE.Vector3(
       (Math.random() - 0.5) * 80 * rangeScale,
       (Math.random() - 0.5) * 40 * rangeScale,
@@ -187,14 +452,123 @@ async function loadPolaroids(){
 
     photo.attractor = attractor;
     attractors.push(attractor);
+  });
+}
 
+function clearPolaroids() {
+  polaroids.forEach((polaroid) => {
+    scene.remove(polaroid.group);
   });
 
+  polaroids.length = 0;
+}
 
-  // Reset tree
-  treeFinished = false;
-  nodes.length = 0;
-  nodes.push(new Node(new THREE.Vector3(0,0,0)));
+function createPolaroid(photo) {
+  const aspect = photo.width / photo.height;
+  const group = new THREE.Group();
+  const flipPivot = new THREE.Group();
+  group.add(flipPivot);
+
+  const frameHeight = 3.6;
+  const bottomBorder = 0.5;
+  const frameWidth = frameHeight * aspect;
+
+  const frameMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(frameWidth, frameHeight),
+    new THREE.MeshBasicMaterial({ color: 0xffffff })
+  );
+
+  frameMesh.position.y = -bottomBorder / 2;
+  flipPivot.add(frameMesh);
+
+  const photoHeight = frameHeight - bottomBorder - 0.2;
+  const photoWidth = photoHeight * aspect;
+
+  const photoMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(photoWidth, photoHeight),
+    new THREE.MeshBasicMaterial({
+      map: photo.texture,
+      transparent: true,
+      opacity: 0,
+    })
+  );
+
+  photoMesh.position.set(0, (bottomBorder + 0.2) / 2 - 0.5, 0.01);
+  flipPivot.add(photoMesh);
+
+  const backMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(photoWidth, photoHeight),
+    new THREE.MeshBasicMaterial({ map: photo.backTexture })
+  );
+
+  backMesh.position.copy(photoMesh.position);
+  backMesh.rotation.y = Math.PI;
+  flipPivot.add(backMesh);
+
+  group.position.copy(photo.attractor);
+  flipPivot.rotation.z = photo.rotationZ ?? (Math.random() - 0.5) * 0.2;
+
+  if (photo.flipped) {
+    flipPivot.rotation.y = Math.PI;
+  }
+
+  const polaroid = {
+    group,
+    pivot: flipPivot,
+    front: photoMesh,
+    back: backMesh,
+    flipped: Boolean(photo.flipped),
+    opacity: 0,
+    targetOpacity: 0,
+    distance: Infinity,
+    data: photo,
+    discovered: Boolean(photo.discovered),
+  };
+
+  polaroids.push(polaroid);
+  scene.add(group);
+}
+
+function rebuildSceneLayout() {
+  if (!photoCatalog.length) {
+    return;
+  }
+
+  clearPolaroids();
+  resetTree();
+  assignAttractors();
+  photoCatalog.forEach(createPolaroid);
+  branchGeometry.setDrawRange(0, 2);
+  branchGeometry.attributes.position.needsUpdate = true;
+  tooltip.visible = false;
+  tooltipShown = false;
+  tooltipPhoto = null;
+}
+
+function scheduleSceneLayoutRebuild() {
+  if (!photoCatalog.length) {
+    return;
+  }
+
+  if (rebuildLayoutFrame !== null) {
+    window.cancelAnimationFrame(rebuildLayoutFrame);
+  }
+
+  rebuildLayoutFrame = window.requestAnimationFrame(() => {
+    rebuildLayoutFrame = null;
+    rebuildSceneLayout();
+  });
+}
+
+
+// --- Load Photos & Preload Textures ---
+async function loadPolaroids(){
+
+  const data = await loadPhotoList();
+  photoCatalog = data;
+  document.getElementById("statTotalPhotos").innerText = data.length;
+  maxVisiblePhotos = Math.min(maxVisiblePhotos, Math.max(1, data.length));
+  syncRenderDistanceControl();
 
 
   // PRELOAD ALL TEXTURES
@@ -223,83 +597,15 @@ async function loadPolaroids(){
   );
 
 
-  // Create polaroids using preloaded textures
   data.forEach((photo, i) => {
-
-    const tex = textures[i];
-    const aspect = photo.width / photo.height;
-
-    const group = new THREE.Group();
-    const flipPivot = new THREE.Group();
-    group.add(flipPivot);
-
-    const frameHeight = 3.6;
-    const bottomBorder = 0.5;
-    const frameWidth = frameHeight * aspect;
-
-    // Frame
-    const frameMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(frameWidth, frameHeight),
-      new THREE.MeshBasicMaterial({ color:0xffffff })
-    );
-
-    frameMesh.position.y = -bottomBorder / 2;
-    flipPivot.add(frameMesh);
-
-
-    // Photo front
-    const photoHeight = frameHeight - bottomBorder - 0.2;
-    const photoWidth = photoHeight * aspect;
-
-    const photoMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(photoWidth, photoHeight),
-      new THREE.MeshBasicMaterial({
-        map: tex,
-        transparent:true,
-        opacity:0
-      })
-    );
-
-    photoMesh.position.set(0,(bottomBorder+0.2)/2 - 0.5,0.01);
-    flipPivot.add(photoMesh);
-
-
-    // Photo back
-    const backTex = createPolaroidBackTexture(photo, aspect);
-
-    const backMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(photoWidth, photoHeight),
-      new THREE.MeshBasicMaterial({ map:backTex })
-    );
-
-    backMesh.position.copy(photoMesh.position);
-    backMesh.rotation.y = Math.PI;
-
-    flipPivot.add(backMesh);
-
-
-    group.position.copy(photo.attractor);
-    flipPivot.rotation.z = (Math.random() - 0.5) * 0.2;
-
-
-    polaroids.push({
-      group,
-      pivot:flipPivot,
-      front:photoMesh,
-      back:backMesh,
-      flipped:false,
-      opacity:0,
-      targetOpacity:0,
-      distance:Infinity,
-      data:photo,
-      discovered:false
-    });
-
-
-    scene.add(group);
-
+    photo.texture = textures[i];
+    photo.backTexture = createPolaroidBackTexture(photo, photo.width / photo.height);
+    photo.discovered = Boolean(photo.discovered);
+    photo.flipped = Boolean(photo.flipped);
+    photo.rotationZ = photo.rotationZ ?? (Math.random() - 0.5) * 0.2;
   });
 
+  rebuildSceneLayout();
 }
 
 // --- Flip on 'E' press ---
@@ -330,11 +636,13 @@ if(closest){
 
     // toggle state
     closest.flipped = !closest.flipped;
+    closest.data.flipped = closest.flipped;
 
     // update stats
     if (closest.flipped && !closest.discovered) {
       closest.discovered = true;
       const d = closest.data;
+      d.discovered = true;
     
       // photos revealed
       discoveryStats.photosRevealed++;
@@ -562,7 +870,7 @@ function createTooltipTexture() {
   ctx.fill();
 
   // text
-  ctx.font = "72px Futura";
+  ctx.font = '72px "Futura"';
   ctx.fillStyle = "white";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -781,7 +1089,7 @@ function animate(){
 
   // nearest visible photos
   sorted.forEach((entry,i)=>{
-    entry.p.targetOpacity = i < MAX_VISIBLE_PHOTOS ? 1 : 0;
+    entry.p.targetOpacity = i < maxVisiblePhotos ? 1 : 0;
   });
 
 
@@ -849,6 +1157,7 @@ function animate(){
 }
 
 async function init() {
+  await document.fonts.load('72px "Futura"');
   await document.fonts.load('72px "Sid_handwriting"');
   await loadPolaroids();
   animate();
