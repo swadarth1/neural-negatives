@@ -5,6 +5,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "FuturaCyrillicBook";
+  src: url("/assets/fonts/FuturaCyrillicBook.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 #loadingScreen {
   position: fixed;
   inset: 0;
@@ -13,7 +20,7 @@
   align-items: center;
   justify-content: center;
 
-  font-family: Futura, sans-serif;
+  font-family: "FuturaCyrillicBook", sans-serif;
   color: white;
 
   background: rgba(0, 0, 0, 0.98);
@@ -81,7 +88,7 @@
   padding: 16px 22px;
   border-radius: 16px;
 
-  font-family: Futura, sans-serif;
+  font-family: "FuturaCyrillicBook", sans-serif;
   font-size: 18px;
   line-height: 1.6;
   color: white;
@@ -133,7 +140,7 @@
 
   padding: 8px 14px;
 
-  font-family: Futura, sans-serif;
+  font-family: "FuturaCyrillicBook", sans-serif;
   font-size: 0.75rem;
   color: white;
 

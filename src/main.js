@@ -37,8 +37,8 @@ function ensureControlPanel() {
         <label class="sliderControl">
           <span class="controlLabel">Polaroid Spread</span>
           <div class="sliderRow">
-            <input id="nodeSpread" type="range" min="0.5" max="3" step="0.05" value="1">
-            <span id="nodeSpreadValue" class="sliderValue">1.00</span>
+            <input id="nodeSpread" type="range" min="0.5" max="3" step="0.05" value="1.25">
+            <span id="nodeSpreadValue" class="sliderValue">1.25</span>
           </div>
         </label>
         <label class="sliderControl">
@@ -72,7 +72,7 @@ function ensureControlPanel() {
       backdropFilter: "blur(14px) saturate(180%)",
       WebkitBackdropFilter: "blur(14px) saturate(180%)",
       boxShadow: "0 8px 30px rgba(0, 0, 0, 0.35)",
-      fontFamily: "Futura, sans-serif",
+      fontFamily: '"FuturaCyrillicBook", sans-serif',
       pointerEvents: "auto",
       visibility: "hidden",
       opacity: "0",
@@ -870,7 +870,7 @@ function createTooltipTexture() {
   ctx.fill();
 
   // text
-  ctx.font = '72px "Futura"';
+  ctx.font = '72px "FuturaCyrillicBook"';
   ctx.fillStyle = "white";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -1157,7 +1157,7 @@ function animate(){
 }
 
 async function init() {
-  await document.fonts.load('72px "Futura"');
+  await document.fonts.load('72px "FuturaCyrillicBook"');
   await document.fonts.load('72px "Sid_handwriting"');
   await loadPolaroids();
   animate();
