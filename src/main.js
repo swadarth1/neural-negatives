@@ -364,7 +364,7 @@ const influenceDistance = 50;
 const killDistance = 1.5;
 const stepSize = 0.9;
 let rangeScale = Number(nodeSpreadInput.value);
-let maxVisiblePhotos = 42;
+let maxVisiblePhotos = 24;
 
 let treeFinished = false;
 let photoCatalog = [];
