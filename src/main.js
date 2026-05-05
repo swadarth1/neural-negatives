@@ -463,6 +463,78 @@ function clearPolaroids() {
   polaroids.length = 0;
 }
 
+function createHighlightBorder(frameWidth, frameHeight, centerY) {
+  const borderGroup = new THREE.Group();
+  const thickness = 0.08;
+  const padding = 0.05;
+  const borderColor = 0x5ec8ff;
+  const horizontalWidth = frameWidth + padding * 2 + thickness;
+  const verticalHeight = frameHeight + padding * 2 + thickness;
+
+  const borderSegments = [
+    { width: horizontalWidth, height: thickness, x: 0, y: centerY + frameHeight / 2 + padding },
+    { width: horizontalWidth, height: thickness, x: 0, y: centerY - frameHeight / 2 - padding },
+    { width: thickness, height: verticalHeight, x: -frameWidth / 2 - padding, y: centerY },
+    { width: thickness, height: verticalHeight, x: frameWidth / 2 + padding, y: centerY },
+  ];
+
+  const materials = borderSegments.map(() =>
+    new THREE.MeshBasicMaterial({
+      color: borderColor,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    })
+  );
+
+  borderSegments.forEach((segment, index) => {
+    const borderMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(segment.width, segment.height),
+      materials[index]
+    );
+
+    borderMesh.position.set(segment.x, segment.y, 0.025);
+    borderGroup.add(borderMesh);
+  });
+
+  borderGroup.visible = false;
+
+  return { group: borderGroup, materials };
+}
+
+function getInteractablePolaroid() {
+  const maxDist = 5;
+  const maxAngle = Math.PI / 4;
+  let closest = null;
+  let closestDist = Infinity;
+  const camPos = camera.position.clone();
+  const camDir = new THREE.Vector3();
+  camera.getWorldDirection(camDir);
+
+  polaroids.forEach((polaroid) => {
+    if (polaroid.opacity <= 0.05) {
+      return;
+    }
+
+    const pos = polaroid.group.position.clone();
+    const dist = camPos.distanceTo(pos);
+
+    if (dist >= maxDist) {
+      return;
+    }
+
+    const dirTo = pos.sub(camPos).normalize();
+    const angle = camDir.angleTo(dirTo);
+
+    if (angle < maxAngle && dist < closestDist) {
+      closest = polaroid;
+      closestDist = dist;
+    }
+  });
+
+  return closest;
+}
+
 function createPolaroid(photo) {
   const aspect = photo.width / photo.height;
   const group = new THREE.Group();
@@ -480,6 +552,9 @@ function createPolaroid(photo) {
 
   frameMesh.position.y = -bottomBorder / 2;
   flipPivot.add(frameMesh);
+
+  const highlightBorder = createHighlightBorder(frameWidth, frameHeight, frameMesh.position.y);
+  flipPivot.add(highlightBorder.group);
 
   const photoHeight = frameHeight - bottomBorder - 0.2;
   const photoWidth = photoHeight * aspect;
@@ -517,9 +592,12 @@ function createPolaroid(photo) {
     pivot: flipPivot,
     front: photoMesh,
     back: backMesh,
+    highlight: highlightBorder.group,
+    highlightMaterials: highlightBorder.materials,
     flipped: Boolean(photo.flipped),
     opacity: 0,
     targetOpacity: 0,
+    highlightOpacity: 0,
     distance: Infinity,
     data: photo,
     discovered: Boolean(photo.discovered),
@@ -612,25 +690,7 @@ async function loadPolaroids(){
 document.addEventListener('keydown', e=>{
   if(e.code!=='KeyE') return;
 
-  const maxDist = 5;
-  let closest=null;
-  let closestDist=Infinity;
-  const camPos = camera.position.clone();
-  const camDir = new THREE.Vector3();
-  camera.getWorldDirection(camDir);
-
-  polaroids.forEach(p=>{
-      const pos = p.group.position.clone();
-      const dist = camPos.distanceTo(pos);
-      if(dist<maxDist){
-          const dirTo = pos.clone().sub(camPos).normalize();
-          const angle = camDir.angleTo(dirTo);
-          if(angle<Math.PI/4 && dist<closestDist){
-              closest=p;
-              closestDist=dist;
-          }
-      }
-  });
+  const closest = getInteractablePolaroid();
 
 if(closest){
 
@@ -1127,6 +1187,8 @@ function animate(){
 
 
   // fade + billboard
+  const interactablePolaroid = getInteractablePolaroid();
+
   polaroids.forEach(p=>{
 
     p.group.getWorldPosition(tempWorld);
@@ -1147,6 +1209,18 @@ function animate(){
 
     p.front.visible = visible;
     p.back.visible = visible;
+
+    const shouldHighlight = visible && p === interactablePolaroid;
+    const pulse = 0.45 + ((Math.sin(now * 0.01) + 1) * 0.5) * 0.55;
+    const highlightTarget = shouldHighlight ? pulse : 0;
+
+    p.highlightOpacity += (highlightTarget - p.highlightOpacity) * speed * 1.6;
+    p.highlight.visible = p.highlightOpacity > 0.02;
+    p.highlight.scale.setScalar(1 + p.highlightOpacity * 0.04);
+
+    p.highlightMaterials.forEach((material) => {
+      material.opacity = p.highlightOpacity;
+    });
 
   });
 
